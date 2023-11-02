@@ -226,6 +226,8 @@ private:
 
 	bool framebufferResized = false;
 
+	float testkey = 0.0f;
+
 	void initWindow() {
 		glfwInit();
 
@@ -234,6 +236,7 @@ private:
 		window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
 		glfwSetWindowUserPointer(window, this);
 		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+		glfwSetKeyCallback(window, keyCallback);
 	}
 
 	void initVulkan() {
@@ -1100,7 +1103,7 @@ private:
 
 		UniformBufferObject ubo{};
 		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, testkey), glm::vec3(0.0, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 		ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
 
 		ubo.proj[1][1] *= -1;
@@ -1808,6 +1811,23 @@ private:
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
 		auto app = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
 		app->framebufferResized = true;
+	}
+
+	static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+		auto app = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
+
+		if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS) {
+			app->testkey += 0.1f;
+		}
+		else if (key == GLFW_KEY_RIGHT && action == GLFW_REPEAT) {
+			app->testkey += 0.05f;
+		}
+		if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) {
+			app->testkey -= 0.1f;
+		}
+		else if (key == GLFW_KEY_LEFT && action == GLFW_REPEAT) {
+			app->testkey -= 0.05f;
+		}
 	}
 };
 
