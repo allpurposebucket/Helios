@@ -33,7 +33,7 @@
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
-const std::string MODEL_PATH = "models/viking_room.obj";
+const std::string MODEL_PATH = "models/justacube.obj";
 const std::string TEXTURE_PATH = "textures/viking_room.png";
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -226,6 +226,10 @@ private:
 
 	bool framebufferResized = false;
 
+	bool middleMouseButtonPressed = false;
+	double lastMouseX, lastMouseY;
+	glm::vec2 cameraRotation;
+
 	float testkey = 0.0f;
 
 	void initWindow() {
@@ -237,6 +241,9 @@ private:
 		glfwSetWindowUserPointer(window, this);
 		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
 		glfwSetKeyCallback(window, keyCallback);
+		glfwSetMouseButtonCallback(window, mouseButtonCallback);
+		glfwSetScrollCallback(window, mouseScrollCallback);
+		glfwSetCursorPosCallback(window, cursorPosCallback);
 	}
 
 	void initVulkan() {
@@ -1101,11 +1108,16 @@ private:
 		auto currentTime = std::chrono::high_resolution_clock::now();
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-		UniformBufferObject ubo{};
-		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, testkey), glm::vec3(0.0, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
+		//cameraRotation.y += time * glm::radians(90.0f);
 
+		glm::mat4 view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		view = glm::rotate(view, glm::radians(cameraRotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+		view = glm::rotate(view, glm::radians(cameraRotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+
+		UniformBufferObject ubo{};
+		ubo.model = glm::mat4(1.0f);
+		ubo.view = view;
+		ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
 		ubo.proj[1][1] *= -1;
 
 		memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
@@ -1827,6 +1839,44 @@ private:
 		}
 		else if (key == GLFW_KEY_LEFT && action == GLFW_REPEAT) {
 			app->testkey -= 0.05f;
+		} 
+	}
+
+	static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+		auto app = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
+
+		if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
+			if (action == GLFW_PRESS) {
+				app->middleMouseButtonPressed = true;
+				glfwGetCursorPos(window, &app->lastMouseX, &app->lastMouseY);
+			}
+			else if (action == GLFW_RELEASE) {
+				app->middleMouseButtonPressed = false;
+			}
+		}
+	}
+
+	static void mouseScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+
+	}
+
+	static void cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
+		auto app = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
+
+		if (app->middleMouseButtonPressed) {
+			double deltaX = xpos - app->lastMouseX;
+			double deltaY = ypos - app->lastMouseY;
+
+			float rotationSpeed = 0.2f;
+			float maxPitch = 89.0f;
+
+			app->cameraRotation.x -= deltaX * rotationSpeed;
+			app->cameraRotation.y += deltaY * rotationSpeed;
+
+			app->cameraRotation.x = glm::clamp(app->cameraRotation.x, -maxPitch, maxPitch);
+
+			app->lastMouseX = xpos;
+			app->lastMouseY = ypos;
 		}
 	}
 };
